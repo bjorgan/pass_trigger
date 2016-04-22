@@ -15,9 +15,10 @@
  *
  * \param tle_file Path to TLE file
  * \param satellite_number Satellite number
+ * \param output_satellite_name Output satellite name
  * \return Parsed orbital elements. Will return NULL if something went wrong (file not found or satellite number not found in file)
  **/
-predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number);
+predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number, char **output_satellite_name);
 
 int main(int argc, char *argv[])
 {
@@ -31,7 +32,8 @@ int main(int argc, char *argv[])
 	double lon = strtod(argv[4], NULL);
 
 	//get orbital elements from TLE file
-	predict_orbital_elements_t *orbital_elements = orbital_elements_from_file(tle_filename, satellite_number);
+	char *satellite_name;
+	predict_orbital_elements_t *orbital_elements = orbital_elements_from_file(tle_filename, satellite_number, &satellite_name);
 	if (orbital_elements == NULL) {
 		fprintf(stderr, "Specified TLE not found.\n");
 		return 1;
@@ -69,11 +71,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Sleeping for %f hours until next AOS (%s).\n", seconds_until_aos/(60.0*60.0), time_string);
 			sleep(seconds_until_aos);
 		}
-
 	}
 }
 
-predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number)
+predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number, char **output_satellite_name)
 {
 	FILE *fd = fopen(tle_file,"r");
 	if (fd == NULL) {
@@ -102,6 +103,7 @@ predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, lon
 		predict_orbital_elements_t *temp_elements = predict_parse_tle(tle);
 		if (temp_elements->satellite_number == satellite_number) {
 			fprintf(stderr, "Satellite %s (%ld) found.\n", name, satellite_number);
+			*output_satellite_name = strdup(name);
 			fclose(fd);
 			return temp_elements;
 		}
