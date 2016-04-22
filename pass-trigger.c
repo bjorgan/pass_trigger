@@ -4,10 +4,13 @@
 #include <predict/predict.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #define NUM_CHARS_IN_TLE 80
 #define NUM_TIME_CHARS 80
-#define ELEVATION_THRESHOLD_DEGREES 3
+#define ELEVATION_THRESHOLD_DEGREES 0
+#define NUM_CHARS_IN_FILENAME 512
 
 /**
  * Parse a TLE file for a specific satellite number and return as parsed orbital elements.
@@ -19,6 +22,14 @@
  * \return Parsed orbital elements. Will return NULL if something went wrong (file not found or satellite number not found in file)
  **/
 predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number, char **output_satellite_name);
+
+/**
+ * Start audio capture.
+ *
+ * \param filename Filename for writing sound file
+ * \return PID of audio capture process
+ **/
+pid_t start_capture(char *filename);
 
 int main(int argc, char *argv[])
 {
@@ -51,14 +62,24 @@ int main(int argc, char *argv[])
 		predict_orbit(orbital_elements, &orbit, curr_time);
 		predict_observe_orbit(qth, &orbit, &observation);
 
-		//start capture when above the horizon
 		if (observation.elevation*180.0/M_PI > ELEVATION_THRESHOLD_DEGREES) {
-			fprintf(stderr, "Capture trigger\n");
+			//construct filename
+			char filename[NUM_CHARS_IN_FILENAME] = {0};
+			time_t curr_unix_time = time(NULL);
+			strftime(time_string, NUM_TIME_CHARS, "%F-%H%M%S", gmtime(&curr_unix_time));
+			snprintf(filename, NUM_CHARS_IN_FILENAME, "%s-%s.wav", satellite_name, time_string);
+
+			//start capture
+			fprintf(stderr, "Starting capture...\n");
+			pid_t capture_pid = start_capture(filename);
+
+			//sleep through the pass
 			predict_julian_date_t los_time = predict_next_los(qth, orbital_elements, curr_time);
-			fprintf(stderr, "Sleep rest of the pass\n");
 			sleep((los_time - curr_time)*24*60*60);
-			fprintf(stderr, "Wake up, stop capture\n");
 			curr_time = predict_to_julian(time(NULL));
+
+			//stop capture
+			kill(capture_pid, 9);
 		}
 
 		//check time until next pass
@@ -112,4 +133,23 @@ predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, lon
 
 	fclose(fd);
 	return NULL;
+}
+
+pid_t start_capture(char *filename)
+{
+	char cmd[] = "/usr/bin/arecord";
+	char *args[] = {"/usr/bin/arecord", "-D", "pulse", "-f", "S16_LE", filename, NULL};
+	int retval = 0;
+
+	pid_t ret_pid;
+	switch (ret_pid = fork()) {
+		case -1:
+			fprintf(stderr, "Failed to fork process.");
+			break;
+		case 0:
+			retval = execv(cmd, args);
+			break;
+		default:
+			return ret_pid;
+	}
 }
