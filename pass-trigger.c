@@ -17,44 +17,7 @@
  * \param satellite_number Satellite number
  * \return Parsed orbital elements. Will return NULL if something went wrong (file not found or satellite number not found in file)
  **/
-predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number)
-{
-	FILE *fd = fopen(tle_file,"r");
-	if (fd == NULL) {
-		return NULL;
-	}
-
-	while (feof(fd) == 0) {
-		char name[NUM_CHARS_IN_TLE] = {0};
-		char line1[NUM_CHARS_IN_TLE] = {0};
-		char line2[NUM_CHARS_IN_TLE] = {0};
-
-		//read element set
-		fgets(name,75,fd);
-		fgets(line1,75,fd);
-		fgets(line2,75,fd);
-
-		//trim name
-		int y=strlen(name);
-		while (name[y]==32 || name[y]==0 || name[y]==10 || name[y]==13 || y==0) {
-			name[y]=0;
-			y--;
-		}
-
-		//parse element set
-		char *tle[2] = {line1, line2};
-		predict_orbital_elements_t *temp_elements = predict_parse_tle(tle);
-		if (temp_elements->satellite_number == satellite_number) {
-			fprintf(stderr, "Satellite %s (%ld) found.\n", name, satellite_number);
-			fclose(fd);
-			return temp_elements;
-		}
-		predict_destroy_orbital_elements(temp_elements);
-	}
-
-	fclose(fd);
-	return NULL;
-}
+predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number);
 
 int main(int argc, char *argv[])
 {
@@ -108,4 +71,43 @@ int main(int argc, char *argv[])
 		}
 
 	}
+}
+
+predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, long satellite_number)
+{
+	FILE *fd = fopen(tle_file,"r");
+	if (fd == NULL) {
+		return NULL;
+	}
+
+	while (feof(fd) == 0) {
+		char name[NUM_CHARS_IN_TLE] = {0};
+		char line1[NUM_CHARS_IN_TLE] = {0};
+		char line2[NUM_CHARS_IN_TLE] = {0};
+
+		//read element set
+		fgets(name,75,fd);
+		fgets(line1,75,fd);
+		fgets(line2,75,fd);
+
+		//trim name
+		int y=strlen(name);
+		while (name[y]==32 || name[y]==0 || name[y]==10 || name[y]==13 || y==0) {
+			name[y]=0;
+			y--;
+		}
+
+		//parse element set
+		char *tle[2] = {line1, line2};
+		predict_orbital_elements_t *temp_elements = predict_parse_tle(tle);
+		if (temp_elements->satellite_number == satellite_number) {
+			fprintf(stderr, "Satellite %s (%ld) found.\n", name, satellite_number);
+			fclose(fd);
+			return temp_elements;
+		}
+		predict_destroy_orbital_elements(temp_elements);
+	}
+
+	fclose(fd);
+	return NULL;
 }
