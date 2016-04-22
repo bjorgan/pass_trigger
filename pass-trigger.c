@@ -59,7 +59,7 @@ predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, lon
 int main(int argc, char *argv[])
 {
 	if (argc <= 4) {
-		fprintf(stderr, "Usage: %s tle_file satellite_number qth_latitude qth_longitude\n", argv[0]);
+		fprintf(stderr, "Usage: %s tle_file satellite_number qth_latitude(N) qth_longitude(E)\n", argv[0]);
 		return 1;
 	}
 	char *tle_filename = argv[1];
