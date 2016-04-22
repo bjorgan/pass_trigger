@@ -6,6 +6,8 @@
 #include <string.h>
 
 #define NUM_CHARS_IN_TLE 80
+#define NUM_TIME_CHARS 80
+#define ELEVATION_THRESHOLD_DEGREES 3
 
 /**
  * Parse a TLE file for a specific satellite number and return as parsed orbital elements.
@@ -54,7 +56,6 @@ predict_orbital_elements_t *orbital_elements_from_file(const char *tle_file, lon
 	return NULL;
 }
 
-#define NUM_TIME_CHARS 80
 int main(int argc, char *argv[])
 {
 	if (argc <= 4) {
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
 		predict_observe_orbit(qth, &orbit, &observation);
 
 		//start capture when above the horizon
-		if (observation.elevation > 0) {
+		if (observation.elevation*180.0/M_PI > ELEVATION_THRESHOLD_DEGREES) {
 			fprintf(stderr, "Capture trigger\n");
 			predict_julian_date_t los_time = predict_next_los(qth, orbital_elements, curr_time);
 			fprintf(stderr, "Sleep rest of the pass\n");
